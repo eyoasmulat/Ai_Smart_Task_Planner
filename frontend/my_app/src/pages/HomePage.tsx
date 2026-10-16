@@ -75,7 +75,7 @@ export default function HomePage({ onCreatePlan }: HomePageProps) {
         <section className="home-hero">
           <div className="home-wrap home-hero-grid">
             <div>
-              <span className="home-eyebrow"><Sparkles size={14} /> Your personal AI planning assistant</span>
+              
               <h1>Turn your goals into <em>actionable plans.</em></h1>
               <p className="home-hero-copy">Big goals become easier when you know what to do next. Describe what you want to achieve and let AI organize it into practical tasks, priorities, and deadlines.</p>
               <div className="home-hero-buttons">

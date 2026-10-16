@@ -160,9 +160,9 @@ export default function DashboardReferencePage({ searchTerm }: DashboardReferenc
     <>
       <section id="dashboard">
         <div className="welcome">
-          <Sparkles size={30} aria-hidden="true" />
+          <span className="welcome-icon" aria-hidden="true">👋</span>
           <div className="desc">
-            <h1>Your planning dashboard</h1>
+            <h1>Welcome back!</h1>
             <p>Turn your goals into a step-by-step plan.</p>
           </div>
           <button className="primary" type="button" onClick={scrollToPlanner}>

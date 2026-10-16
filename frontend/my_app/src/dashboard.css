@@ -35,22 +35,22 @@ button {
   top: 0;
   z-index: 30;
   display: flex;
-  height: 74px;
+  height: 96px;
   align-items: center;
-  gap: 28px;
+  gap: 32px;
   border-bottom: 1px solid var(--line);
   background: #fff;
-  padding: 0 28px;
+  padding: 0 38px;
 }
 
 .brand {
   display: flex;
-  width: 235px;
+  width: 300px;
   flex-shrink: 0;
   align-items: center;
-  gap: 9px;
+  gap: 11px;
   color: var(--ink);
-  font-size: 20px;
+  font-size: 25px;
   font-weight: 800;
   text-decoration: none;
 }
@@ -61,7 +61,7 @@ button {
 
 .search-wrap {
   position: relative;
-  width: min(530px, 50vw);
+  width: min(720px, 50vw);
 }
 
 .search-icon {
@@ -75,7 +75,7 @@ button {
 
 .search {
   width: 100%;
-  padding: 12px 16px 12px 40px;
+  padding: 16px 18px 16px 48px;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: #fafcff;
@@ -113,8 +113,8 @@ button {
 
 .layout {
   display: grid;
-  min-height: calc(100vh - 74px);
-  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: calc(100vh - 96px);
+  grid-template-columns: clamp(260px, 20vw, 340px) minmax(0, 1fr);
 }
 
 .sidebar {
@@ -122,25 +122,25 @@ button {
   flex-direction: column;
   border-right: 1px solid var(--line);
   background: #fff;
-  padding: 22px 12px;
+  padding: 30px 14px;
 }
 
 .nav {
   display: grid;
-  gap: 7px;
+  gap: 9px;
 }
 
 .nav-link {
   display: flex;
-  min-height: 48px;
+  min-height: 68px;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   border: 0;
   border-radius: 10px;
   background: transparent;
-  padding: 13px 15px;
+  padding: 16px 18px;
   color: var(--ink);
-  font-size: 15px;
+  font-size: 18px;
   text-align: left;
   text-decoration: none;
 }
@@ -200,7 +200,7 @@ button {
 
 .app-main {
   min-width: 0;
-  padding: 28px 30px;
+  padding: 38px 40px;
 }
 
 .welcome {
@@ -210,25 +210,37 @@ button {
   margin-bottom: 25px;
 }
 
+.welcome-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  place-items: center;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
+  font-size: 38px;
+  line-height: 1;
+}
+
 .welcome .desc {
   flex: 1;
 }
 
 .welcome h1 {
   margin: 0 0 8px;
-  font-size: 25px;
+  font-size: 34px;
 }
 
 .welcome p {
   margin: 0;
   color: var(--muted);
+  font-size: 19px;
 }
 
 .stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
-  margin-bottom: 23px;
+  gap: 22px;
+  margin-bottom: 28px;
 }
 
 .stat,
@@ -241,15 +253,15 @@ button {
 
 .stat {
   display: flex;
-  min-height: 130px;
-  gap: 15px;
-  padding: 17px;
+  min-height: 180px;
+  gap: 19px;
+  padding: 23px;
 }
 
 .staticon {
   display: grid;
-  width: 50px;
-  height: 50px;
+  width: 68px;
+  height: 68px;
   flex-shrink: 0;
   place-items: center;
   border-radius: 50%;
@@ -273,45 +285,46 @@ button {
 }
 
 .num {
-  margin: 6px 0;
-  font-size: 27px;
+  margin: 8px 0;
+  font-size: 36px;
   font-weight: 800;
 }
 
 .stat small {
   display: block;
   color: var(--muted);
+  font-size: 16px;
 }
 
 .trend {
-  margin-top: 13px;
+  margin-top: 16px;
   color: var(--green);
-  font-size: 12px;
+  font-size: 15px;
 }
 
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.95fr);
-  gap: 21px;
+  gap: 28px;
 }
 
 .dashboard-col {
   display: grid;
   align-content: start;
-  gap: 20px;
+  gap: 26px;
 }
 
 .panel {
   min-width: 0;
-  padding: 20px;
+  padding: 26px;
 }
 
 .heading {
   display: flex;
   align-items: center;
   gap: 11px;
-  margin: 0 0 17px;
-  font-size: 17px;
+  margin: 0 0 21px;
+  font-size: 21px;
   font-weight: 800;
 }
 
