@@ -299,7 +299,7 @@ export default function DashboardReferencePage({ searchTerm }: DashboardReferenc
                   <div className="deadline" key={task.id ?? `${task.title}-${index}`}>
                     <div className="date"><small>{date.month}</small><strong>{date.day}</strong></div>
                     <div className="deadline-info"><strong>{task.title}</strong><p>{task.planTitle}</p></div>
-                    {taskStatus(task) === "DONE" ? <Check size={17} color="var(--green)" /> : <Circle size={17} color="var(--muted)" />}
+                    {taskStatus(task) === "DONE" ? <Check size={17} color="var(--green)" /> : <Circle size={17} color="var(--icon-muted)" />}
                   </div>
                 );
               })}

@@ -1,6 +1,7 @@
 :root {
   --ink: #102454;
-  --muted: #61769e;
+  --muted: #000;
+  --icon-muted: #61769e;
   --purple: #513cff;
   --line: #e3eafa;
   --green: #10b981;
@@ -68,7 +69,7 @@ button {
   position: absolute;
   top: 50%;
   left: 14px;
-  color: var(--muted);
+  color: var(--icon-muted);
   transform: translateY(-50%);
   pointer-events: none;
 }
@@ -646,7 +647,7 @@ button {
 
 .task-status-icon {
   float: right;
-  color: var(--muted);
+  color: var(--icon-muted);
 }
 
 .pill {
