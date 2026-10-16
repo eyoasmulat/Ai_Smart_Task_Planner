@@ -1,9 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { CalendarDays, CheckCircle2, Edit3, FolderKanban, ListTodo, Trash2, X } from "lucide-react";
+import { CalendarDays, CheckCircle2, Edit3, ExternalLink, FolderKanban, ListTodo, LoaderCircle, Trash2, X } from "lucide-react";
 import {
+  addTaskToGoogleCalendar,
   deletePlan,
   deleteTask,
+  getGoogleCalendarConnectUrl,
+  getGoogleCalendarStatus,
   getPlans,
   updatePlan,
   updateTask,
@@ -29,7 +32,7 @@ export default function CollectionPage({ kind, searchTerm }: CollectionPageProps
   const [plans, setPlans] = useState<Plan[]>([]);
   const [error, setError] = useState("");
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
-  const [editingTask, setEditingTask] = useState<(PlanTask & { planTitle: string; planId?: string }) | null>(null);
+  const [editingTask, setEditingTask] = useState<(PlanTask & { planTitle: string; planId?: number }) | null>(null);
   const [planDraft, setPlanDraft] = useState({ title: "", goalDescription: "", targetDate: "" });
   const [taskDraft, setTaskDraft] = useState({
     title: "",
@@ -40,6 +43,11 @@ export default function CollectionPage({ kind, searchTerm }: CollectionPageProps
     status: "TODO" as NonNullable<PlanTask["status"]>,
   });
   const [saving, setSaving] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState<boolean | null>(null);
+  const [selectedCalendarTaskIds, setSelectedCalendarTaskIds] = useState<number[]>([]);
+  const [calendarReviewTasks, setCalendarReviewTasks] = useState<(PlanTask & { planTitle: string; planId?: number })[] | null>(null);
+  const [calendarWorking, setCalendarWorking] = useState(false);
+  const [calendarMessage, setCalendarMessage] = useState("");
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -49,20 +57,81 @@ export default function CollectionPage({ kind, searchTerm }: CollectionPageProps
     });
   }, [kind]);
 
+  useEffect(() => {
+    if (kind !== "calendar") return;
+    void getGoogleCalendarStatus()
+      .then(setCalendarConnected)
+      .catch((requestError: unknown) => {
+        setError(requestError instanceof Error ? requestError.message : "Could not check Google Calendar connection.");
+      });
+  }, [kind]);
+
   const allTasks = plans.flatMap((plan) =>
     plan.tasks.map((task) => ({ ...task, planTitle: plan.title, planId: plan.id })),
   );
-  const selectedPlanId = searchParams.get("planId");
+  const planIdParam = searchParams.get("planId");
+  const selectedPlanId = planIdParam ? Number(planIdParam) : null;
   const query = searchTerm.trim().toLowerCase();
   const matches = (value: string) => value.toLowerCase().includes(query);
   const planItems = plans.filter((plan) => matches(`${plan.title} ${plan.goalDescription}`));
   const taskItems = allTasks.filter((task) =>
-    (!selectedPlanId || task.planId === selectedPlanId) &&
+    (selectedPlanId === null || task.planId === selectedPlanId) &&
     matches(`${task.title} ${task.description} ${task.planTitle}`),
   );
   const calendarItems = taskItems
     .filter((task) => task.dueDate)
     .sort((left, right) => String(left.dueDate).localeCompare(String(right.dueDate)));
+  const selectedCalendarTasks = calendarItems.filter(
+    (task) => task.id !== undefined && selectedCalendarTaskIds.includes(task.id),
+  );
+
+  function toggleCalendarTask(taskId: number) {
+    setSelectedCalendarTaskIds((current) => current.includes(taskId)
+      ? current.filter((id) => id !== taskId)
+      : [...current, taskId]);
+  }
+
+  async function confirmCalendarEvents() {
+    if (!calendarReviewTasks?.length) return;
+
+    setCalendarWorking(true);
+    setError("");
+    setCalendarMessage("");
+    const failedTasks: typeof calendarReviewTasks = [];
+    let createdCount = 0;
+
+    for (const task of calendarReviewTasks) {
+      if (task.id === undefined) continue;
+
+      try {
+        const event = await addTaskToGoogleCalendar(task.id);
+        setPlans((current) => current.map((plan) => ({
+          ...plan,
+          tasks: plan.tasks.map((planTask) => planTask.id === event.taskId
+            ? { ...planTask, googleEventId: event.eventId }
+            : planTask),
+        })));
+        createdCount += 1;
+      } catch {
+        failedTasks.push(task);
+      }
+    }
+
+    if (createdCount > 0) {
+      setCalendarMessage(`${createdCount} calendar event${createdCount === 1 ? "" : "s"} created.`);
+    }
+
+    if (failedTasks.length > 0) {
+      setCalendarReviewTasks(failedTasks);
+      setSelectedCalendarTaskIds(failedTasks.flatMap((task) => task.id === undefined ? [] : [task.id]));
+      setError(`${failedTasks.length} event${failedTasks.length === 1 ? "" : "s"} could not be created. You can retry the remaining tasks.`);
+    } else {
+      setCalendarReviewTasks(null);
+      setSelectedCalendarTaskIds([]);
+    }
+
+    setCalendarWorking(false);
+  }
 
   function startPlanEdit(plan: Plan) {
     setEditingPlan(plan);
@@ -105,7 +174,7 @@ export default function CollectionPage({ kind, searchTerm }: CollectionPageProps
     }
   }
 
-  function startTaskEdit(task: PlanTask & { planTitle: string; planId?: string }) {
+  function startTaskEdit(task: PlanTask & { planTitle: string; planId?: number }) {
     setEditingTask(task);
     setTaskDraft({
       title: task.title,
@@ -215,21 +284,94 @@ export default function CollectionPage({ kind, searchTerm }: CollectionPageProps
         </section>
       ) : (
         <section className="panel">
+          <div className="calendar-integration">
+            <div className="calendar-connection" role="status">
+              <span className={`connection-dot${calendarConnected ? " connected" : ""}`} />
+              {calendarConnected === null
+                ? "Checking Google Calendar..."
+                : calendarConnected
+                  ? "Google Calendar connected"
+                  : "Google Calendar not connected"}
+            </div>
+            {calendarConnected === false && (
+              <a className="primary" href={getGoogleCalendarConnectUrl()}>
+                <CalendarDays size={16} /> Connect Google Calendar <ExternalLink size={14} />
+              </a>
+            )}
+          </div>
+          {calendarMessage && <p className="calendar-success" role="status">{calendarMessage}</p>}
+          <p className="muted calendar-note">Select tasks with due dates, review the all-day event details, then confirm to add them to your primary Google Calendar.</p>
+          <div className="calendar-selection">
+            <strong>Tasks with due dates</strong>
+            <button
+              className="primary"
+              type="button"
+              disabled={!calendarConnected || selectedCalendarTasks.length === 0}
+              onClick={() => setCalendarReviewTasks(selectedCalendarTasks)}
+            >
+              Review selected ({selectedCalendarTasks.length})
+            </button>
+          </div>
           {calendarItems.length ? (
-            calendarItems.map((task, index) => (
-              <div className="deadline" key={task.id ?? `${task.title}-${index}`}>
-                <div className="date">
-                  <small>{new Date(`${task.dueDate!.slice(0, 10)}T12:00:00`).toLocaleDateString(undefined, { month: "short" }).toUpperCase()}</small>
-                  <strong>{new Date(`${task.dueDate!.slice(0, 10)}T12:00:00`).getDate()}</strong>
-                </div>
-                <div className="deadline-info"><strong>{task.title}</strong><p>{task.planTitle}</p></div>
-                <CalendarDays size={17} color="var(--purple)" />
-              </div>
-            ))
+            <div className="calendar-task-list">
+              {calendarItems.map((task, index) => {
+                const date = new Date(`${task.dueDate!.slice(0, 10)}T12:00:00`);
+                const alreadyAdded = Boolean(task.googleEventId);
+                return (
+                  <label className="calendar-task" key={task.id ?? `${task.title}-${index}`}>
+                    <input
+                      type="checkbox"
+                      checked={task.id !== undefined && selectedCalendarTaskIds.includes(task.id)}
+                      disabled={!calendarConnected || task.id === undefined || alreadyAdded}
+                      onChange={() => task.id !== undefined && toggleCalendarTask(task.id)}
+                      aria-label={`Select ${task.title} for Google Calendar`}
+                    />
+                    <span className="date">
+                      <small>{date.toLocaleDateString(undefined, { month: "short" }).toUpperCase()}</small>
+                      <strong>{date.getDate()}</strong>
+                    </span>
+                    <span className="deadline-info">
+                      <strong>{task.title}</strong>
+                      <span>{task.planTitle}</span>
+                      {task.description && <span className="calendar-task-description">{task.description}</span>}
+                    </span>
+                    {alreadyAdded
+                      ? <span className="calendar-added">Added</span>
+                      : <CalendarDays size={18} color="var(--purple)" />}
+                  </label>
+                );
+              })}
+            </div>
           ) : (
-            <div className="empty">No tasks to display yet.</div>
+            <div className="empty">No tasks with due dates yet. Add due dates to tasks to schedule them.</div>
           )}
         </section>
+      )}
+
+      {calendarReviewTasks && (
+        <div className="modalbg" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !calendarWorking) setCalendarReviewTasks(null); }}>
+          <section className="modal calendar-review-modal" role="dialog" aria-modal="true" aria-labelledby="calendar-review-title">
+            <div className="modalhead">
+              <h2 id="calendar-review-title">Review calendar events</h2>
+              <button type="button" onClick={() => setCalendarReviewTasks(null)} disabled={calendarWorking} aria-label="Close review"><X size={18} /></button>
+            </div>
+            <p className="muted">These all-day events will be created in your primary Google Calendar only after you confirm.</p>
+            {calendarReviewTasks.map((task) => (
+              <article className="calendar-review-item" key={task.id}>
+                <strong>{task.title}</strong>
+                <span>{task.dueDate ? new Date(`${task.dueDate.slice(0, 10)}T12:00:00`).toLocaleDateString() : "No due date"}</span>
+                <p>Plan: {task.planTitle}{task.description ? ` · ${task.description}` : ""}</p>
+              </article>
+            ))}
+            <div className="actions calendar-review-actions">
+              <button className="secondary" type="button" onClick={() => setCalendarReviewTasks(null)} disabled={calendarWorking}>Cancel</button>
+              <button className="primary" type="button" onClick={() => void confirmCalendarEvents()} disabled={calendarWorking}>
+                {calendarWorking ? <LoaderCircle size={16} className="spin" /> : <CalendarDays size={16} />}
+                {calendarWorking ? "Creating events..." : "Confirm and create"}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
 
       {editingPlan && (

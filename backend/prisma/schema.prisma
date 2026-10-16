@@ -20,7 +20,7 @@ enum TaskPriority {
 }
 
 model Plan {
-  id              String   @id @default(uuid())
+  id              Int      @id @default(autoincrement())
   title           String
   goalDescription String   @db.Text
   targetDate      DateTime?
@@ -31,13 +31,14 @@ model Plan {
 }
 
 model Task {
-  id               String       @id @default(uuid())
-  planId           String
+  id               Int          @id @default(autoincrement())
+  planId           Int
   title            String
   description      String       @db.Text
   priority         TaskPriority @default(MEDIUM)
   estimatedMinutes Int          @default(30)
   dueDate          DateTime?
+  googleEventId    String?      @unique
   status           TaskStatus   @default(TODO)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt

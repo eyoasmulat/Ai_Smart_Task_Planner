@@ -8,6 +8,7 @@ import planRoutes from './routes/plan.routes.js';
 import taskRoutes from './routes/task.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import geminiRoutes from './routes/gemini.routes.js';
+import calendarRoutes from './routes/calendar.routes.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -18,7 +19,7 @@ app.use(
   }),
 );
 app.use(express.json());
-app.use('/api/gemini', geminiRoutes);
+
 
 app.get('/', (_req, res) => {
   res.json({
@@ -29,7 +30,8 @@ app.get('/', (_req, res) => {
 app.use('/api/health', healthRoutes);
 app.use('/api/plans', planRoutes);
 app.use('/api/tasks', taskRoutes);
-
+app.use('/api/gemini', geminiRoutes);
+app.use('/api/calendar', calendarRoutes);
 app.use(errorHandler);
 
 app.listen(PORT, () => {

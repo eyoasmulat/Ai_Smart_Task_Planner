@@ -59,7 +59,7 @@ export async function getAllPlans() {
   });
 }
 
-export async function getPlanById(id: string) {
+export async function getPlanById(id: number) {
   return prisma.plan.findUnique({
     where: { id },
     include: {
@@ -72,7 +72,7 @@ export async function getPlanById(id: string) {
   });
 }
 
-export async function updatePlan(id: string, input: UpdatePlanInput) {
+export async function updatePlan(id: number, input: UpdatePlanInput) {
   const existingPlan = await prisma.plan.findUnique({ where: { id } });
   if (!existingPlan) return null;
 
@@ -91,7 +91,7 @@ export async function updatePlan(id: string, input: UpdatePlanInput) {
   });
 }
 
-export async function deletePlan(id: string) {
+export async function deletePlan(id: number) {
   const existingPlan = await prisma.plan.findUnique({ where: { id } });
   if (!existingPlan) return false;
 

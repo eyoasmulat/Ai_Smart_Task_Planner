@@ -11,7 +11,7 @@ export interface UpdateTaskInput {
 }
 
 export async function updateTask(
-  id: string,
+  id: number,
   input: UpdateTaskInput,
 ) {
   const existingTask = await prisma.task.findUnique({
@@ -47,7 +47,7 @@ export async function updateTask(
   });
 }
 
-export async function deleteTask(id: string) {
+export async function deleteTask(id: number) {
   const existingTask = await prisma.task.findUnique({
     where: { id },
   });

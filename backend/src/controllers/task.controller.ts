@@ -4,6 +4,7 @@ import {
   updateTask,
   deleteTask,
 } from '../services/task.services.js';
+import { parsePositiveIntegerId } from '../lib/task-id.js';
 
 const allowedStatuses = ['TODO', 'IN_PROGRESS', 'DONE'];
 const allowedPriorities = ['LOW', 'MEDIUM', 'HIGH'];
@@ -130,9 +131,16 @@ export async function updateTaskController(
       }
     }
 
-    const taskId = Array.isArray(req.params.id)
-      ? req.params.id[0]
-      : req.params.id;
+    const taskId = parsePositiveIntegerId(req.params.id);
+
+    if (taskId === null) {
+      res.status(400).json({
+        success: false,
+        message: 'A valid positive integer task ID is required.',
+      });
+      return;
+    }
+
     const task = await updateTask(taskId, {
       ...(input.title !== undefined && {
         title: input.title as string,
@@ -178,9 +186,16 @@ export async function deleteTaskController(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const taskId = Array.isArray(req.params.id)
-      ? req.params.id[0]
-      : req.params.id;
+    const taskId = parsePositiveIntegerId(req.params.id);
+
+    if (taskId === null) {
+      res.status(400).json({
+        success: false,
+        message: 'A valid positive integer task ID is required.',
+      });
+      return;
+    }
+
     const deleted = await deleteTask(taskId);
 
     if (!deleted) {

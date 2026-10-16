@@ -40,8 +40,8 @@ export default function DashboardReferencePage({ searchTerm }: DashboardReferenc
   const [searchParams] = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [goal, setGoal] = useState("");
-  const [days, setDays] = useState("7");
-  const [hours, setHours] = useState("2 hours");
+  const [targetDate, setTargetDate] = useState("");
+  const [hoursPerDay, setHoursPerDay] = useState("");
   const [preview, setPreview] = useState<Plan | null>(null);
   const [readOnlyPreview, setReadOnlyPreview] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -110,13 +110,16 @@ export default function DashboardReferencePage({ searchTerm }: DashboardReferenc
     event.preventDefault();
     setMessage("");
     setLoading(true);
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + Number(days));
-    const dueDate = targetDate.toISOString().slice(0, 10);
+    const selectedDate = new Date(`${targetDate}T12:00:00`);
+    const today = new Date();
+    const days = Math.max(1, Math.ceil((
+      Date.UTC(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()) -
+      Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+    ) / 86_400_000));
 
     try {
-      const prompt = `${goal.trim()}\nMake a practical plan for ${days} days with ${hours} per day.`;
-      const generatedPlan = await generatePlan(prompt, dueDate);
+      const prompt = `${goal.trim()}\nMake a practical plan for ${days} days, ending by ${targetDate}, with ${hoursPerDay} hours available per day.`;
+      const generatedPlan = await generatePlan(prompt, targetDate);
       setPreview(generatedPlan);
       setReadOnlyPreview(false);
     } catch (error) {
@@ -247,25 +250,35 @@ export default function DashboardReferencePage({ searchTerm }: DashboardReferenc
                 <div className="goal-count"><span>{goal.length}</span>/2000</div>
                 <div className="controls">
                   <div className="field">
-                    <label htmlFor="days"><Clock3 size={14} /> Time period</label>
-                    <select id="days" value={days} onChange={(event) => setDays(event.target.value)}>
-                      <option value="3">3 days</option>
-                      <option value="7">7 days</option>
-                      <option value="14">14 days</option>
-                      <option value="30">30 days</option>
-                    </select>
+                    <label htmlFor="targetDate"><CalendarDays size={14} /> Target date</label>
+                    <input
+                      id="targetDate"
+                      type="date"
+                      min={new Date().toLocaleDateString("en-CA")}
+                      value={targetDate}
+                      onChange={(event) => setTargetDate(event.target.value)}
+                      required
+                    />
                   </div>
                   <div className="field">
                     <label htmlFor="hours"><Clock3 size={14} /> Daily hours</label>
-                    <select id="hours" value={hours} onChange={(event) => setHours(event.target.value)}>
-                      <option>1 hour</option>
-                      <option>2 hours</option>
-                      <option>3 hours</option>
-                      <option>4 hours</option>
-                      <option>6 hours</option>
-                    </select>
+                    <input
+                      id="hours"
+                      type="number"
+                      min="0.5"
+                      max="24"
+                      step="0.5"
+                      value={hoursPerDay}
+                      onChange={(event) => setHoursPerDay(event.target.value)}
+                      placeholder="e.g. 2.5"
+                      required
+                    />
                   </div>
-                  <button className="primary" type="submit" disabled={loading || goal.trim().length < 5}>
+                  <button
+                    className="primary"
+                    type="submit"
+                    disabled={loading || goal.trim().length < 5 || !targetDate || Number(hoursPerDay) < 0.5 || Number(hoursPerDay) > 24}
+                  >
                     {loading ? <LoaderCircle size={16} className="spin" /> : <Sparkles size={16} />}
                     {loading ? "Generating with Gemini..." : "Generate Plan"}
                   </button>

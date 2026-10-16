@@ -1,0 +1,30 @@
+ALTER TABLE "Task" DROP CONSTRAINT "Task_planId_fkey";
+
+ALTER TABLE "Plan" ADD COLUMN "newId" SERIAL;
+ALTER TABLE "Task" ADD COLUMN "newId" SERIAL;
+ALTER TABLE "Task" ADD COLUMN "newPlanId" INTEGER;
+
+UPDATE "Task" AS task
+SET "newPlanId" = plan."newId"
+FROM "Plan" AS plan
+WHERE task."planId" = plan."id";
+
+ALTER TABLE "Task" ALTER COLUMN "newPlanId" SET NOT NULL;
+ALTER TABLE "Task" DROP CONSTRAINT "Task_pkey";
+ALTER TABLE "Plan" DROP CONSTRAINT "Plan_pkey";
+
+ALTER TABLE "Task" DROP COLUMN "id";
+ALTER TABLE "Task" DROP COLUMN "planId";
+ALTER TABLE "Plan" DROP COLUMN "id";
+
+ALTER TABLE "Plan" RENAME COLUMN "newId" TO "id";
+ALTER TABLE "Task" RENAME COLUMN "newId" TO "id";
+ALTER TABLE "Task" RENAME COLUMN "newPlanId" TO "planId";
+
+ALTER TABLE "Plan" ADD CONSTRAINT "Plan_pkey" PRIMARY KEY ("id");
+ALTER TABLE "Task" ADD CONSTRAINT "Task_pkey" PRIMARY KEY ("id");
+ALTER TABLE "Task" ADD CONSTRAINT "Task_planId_fkey"
+	FOREIGN KEY ("planId") REFERENCES "Plan"("id")
+	ON DELETE CASCADE ON UPDATE CASCADE;
+
+CREATE INDEX "Task_planId_idx" ON "Task"("planId");

@@ -1,5 +1,6 @@
 export interface PlanTask {
-  id?: string;
+  id?: number;
+  googleEventId?: string | null;
   title: string;
   description: string;
   priority: "LOW" | "MEDIUM" | "HIGH";
@@ -10,7 +11,7 @@ export interface PlanTask {
 }
 
 export interface Plan {
-  id?: string;
+  id?: number;
   title: string;
   goalDescription: string;
   targetDate?: string | null;
@@ -82,7 +83,7 @@ export function getPlans(): Promise<Plan[]> {
 }
 
 export function updatePlan(
-  id: string,
+  id: number,
   input: Partial<Pick<Plan, "title" | "goalDescription" | "targetDate">>,
 ): Promise<Plan> {
   return request<Plan>(`/api/plans/${encodeURIComponent(id)}`, {
@@ -91,14 +92,14 @@ export function updatePlan(
   });
 }
 
-export function deletePlan(id: string): Promise<void> {
+export function deletePlan(id: number): Promise<void> {
   return request<void>(`/api/plans/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
 }
 
 export function updateTask(
-  id: string,
+  id: number,
   input: Partial<Omit<PlanTask, "id" | "createdAt">>,
 ): Promise<PlanTask> {
   return request<PlanTask>(`/api/tasks/${encodeURIComponent(id)}`, {
@@ -107,8 +108,41 @@ export function updateTask(
   });
 }
 
-export function deleteTask(id: string): Promise<void> {
+export function deleteTask(id: number): Promise<void> {
   return request<void>(`/api/tasks/${encodeURIComponent(id)}`, {
     method: "DELETE",
+  });
+}
+
+interface GoogleCalendarStatusResponse {
+  success: boolean;
+  connected: boolean;
+  message?: string;
+}
+
+export interface GoogleCalendarEventResult {
+  taskId: number;
+  eventId: string;
+  eventLink?: string;
+}
+
+export async function getGoogleCalendarStatus(): Promise<boolean> {
+  const response = await fetch(`${API_BASE_URL}/api/calendar/status`);
+  const result = (await response.json().catch(() => null)) as GoogleCalendarStatusResponse | null;
+
+  if (!response.ok || !result?.success) {
+    throw new Error(result?.message ?? `Request failed with status ${response.status}.`);
+  }
+
+  return result.connected;
+}
+
+export function getGoogleCalendarConnectUrl(): string {
+  return `${API_BASE_URL}/api/calendar/connect`;
+}
+
+export function addTaskToGoogleCalendar(taskId: number): Promise<GoogleCalendarEventResult> {
+  return request<GoogleCalendarEventResult>(`/api/calendar/tasks/${encodeURIComponent(taskId)}`, {
+    method: "POST",
   });
 }

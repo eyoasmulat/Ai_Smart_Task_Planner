@@ -7,6 +7,7 @@ import {
   getPlanById,
   updatePlan,
 } from '../services/plane.services.js';
+import { parsePositiveIntegerId } from '../lib/task-id.js';
 
 export async function createPlanController(
   req: Request,
@@ -107,9 +108,16 @@ export async function getPlanByIdController(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const planId = Array.isArray(req.params.id)
-      ? req.params.id[0]
-      : req.params.id;
+    const planId = parsePositiveIntegerId(req.params.id);
+
+    if (planId === null) {
+      res.status(400).json({
+        success: false,
+        message: 'A valid positive integer plan ID is required.',
+      });
+      return;
+    }
+
     const plan = await getPlanById(planId);
 
     if (!plan) {
@@ -166,7 +174,16 @@ export async function updatePlanController(
       return;
     }
 
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parsePositiveIntegerId(req.params.id);
+
+    if (id === null) {
+      res.status(400).json({
+        success: false,
+        message: 'A valid positive integer plan ID is required.',
+      });
+      return;
+    }
+
     const plan = await updatePlan(id, {
       ...(values.title !== undefined && { title: (values.title as string).trim() }),
       ...(values.goalDescription !== undefined && { goalDescription: (values.goalDescription as string).trim() }),
@@ -189,7 +206,16 @@ export async function deletePlanController(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const id = parsePositiveIntegerId(req.params.id);
+
+    if (id === null) {
+      res.status(400).json({
+        success: false,
+        message: 'A valid positive integer plan ID is required.',
+      });
+      return;
+    }
+
     const deleted = await deletePlan(id);
     if (!deleted) {
       res.status(404).json({ success: false, message: 'Plan not found.' });

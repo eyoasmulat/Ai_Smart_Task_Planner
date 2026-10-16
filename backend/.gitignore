@@ -2,3 +2,5 @@ node_modules/
 dist/
 generated/
 .env
+.env.google-calendar
+.local/
