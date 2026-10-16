@@ -78,6 +78,110 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function geminiErrorStatus(error: unknown): number | undefined {
+  if (typeof error !== 'object' || error === null) {
+    return undefined;
+  }
+
+  const details = error as { status?: unknown; code?: unknown };
+  const status = Number(details.status ?? details.code);
+  return Number.isInteger(status) ? status : undefined;
+}
+
+function geminiErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return String(error);
+}
+
+function isTemporaryGeminiError(error: unknown): boolean {
+  const status = geminiErrorStatus(error);
+  return (
+    [429, 500, 502, 503, 504].includes(status ?? 0) ||
+    /UNAVAILABLE|RESOURCE_EXHAUSTED|high demand|temporarily unavailable|\b503\b/i.test(
+      geminiErrorMessage(error),
+    )
+  );
+}
+
+function isGeminiQuotaError(error: unknown): boolean {
+  return /quota exceeded|quotaexceeded|GenerateRequestsPerDayPerModel|current quota/i.test(
+    geminiErrorMessage(error),
+  );
+}
+
+function isUnavailableModelError(error: unknown): boolean {
+  return (
+    geminiErrorStatus(error) === 404 ||
+    /model.{0,30}(not found|not available|unsupported)/i.test(
+      geminiErrorMessage(error),
+    )
+  );
+}
+
+function requestError(status: number, message: string): Error & { status: number } {
+  return Object.assign(new Error(message), { status });
+}
+
+async function generateContentWithFallback(prompt: string) {
+  const models = [
+    process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+    process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.7-flash',
+  ];
+  let lastError: unknown;
+
+  for (const [modelIndex, model] of models.entries()) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        return await ai.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema,
+          },
+        });
+      } catch (error: unknown) {
+        lastError = error;
+
+        if (isGeminiQuotaError(error)) {
+          console.error('Gemini quota exhausted:', geminiErrorMessage(error));
+          throw requestError(
+            429,
+            'Gemini API quota is exhausted. Wait for the quota reset or enable billing/increase your API quota.',
+          );
+        }
+
+        const canFallback =
+          modelIndex < models.length - 1 &&
+          (isTemporaryGeminiError(error) || isUnavailableModelError(error));
+
+        if (isTemporaryGeminiError(error) && attempt < 2) {
+          await wait(1000 * 2 ** attempt);
+          continue;
+        }
+
+        if (canFallback) {
+          break;
+        }
+
+        console.error('Gemini request failed:', geminiErrorMessage(error));
+        if (isTemporaryGeminiError(error)) {
+          throw requestError(503, 'Gemini is temporarily busy. Please try again shortly.');
+        }
+        throw requestError(502, 'Gemini could not generate a plan. Check the API key and model access.');
+      }
+    }
+  }
+
+  console.error('Gemini fallback request failed:', geminiErrorMessage(lastError));
+  if (isTemporaryGeminiError(lastError)) {
+    throw requestError(503, 'Gemini is temporarily busy. Please try again shortly.');
+  }
+  throw requestError(502, 'Gemini could not generate a plan. Check the API key and model access.');
+}
+
 // 5. Generate and validate an AI task plan
 export async function generatePlanWithGemini(
   goal: string,
@@ -102,49 +206,11 @@ Instructions:
 - Return data matching the required JSON structure.
 `;
 
-  // Retry temporary service errors up to 3 attempts
-  let responseText: string | undefined;
-
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema,
-        },
-      });
-
-      responseText = response.text;
-      break;
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : String(error);
-
-      const isTemporary =
-        /\b503\b|UNAVAILABLE|\b429\b|RESOURCE_EXHAUSTED|\b500\b|INTERNAL/i.test(
-          message,
-        );
-
-      if (!isTemporary || attempt === 2) {
-        if (isTemporary) {
-          throw new Error(
-            'Gemini is temporarily busy or rate-limited. Please try again shortly.',
-          );
-        }
-
-        console.error('Gemini request failed:', message);
-        throw new Error('Failed to generate the AI plan. Please try again.');
-      }
-
-      // Wait 1 second, then 2 seconds before retrying
-      await wait(1000 * 2 ** attempt);
-    }
-  }
+  const response = await generateContentWithFallback(prompt);
+  const responseText = response.text;
 
   if (!responseText) {
-    throw new Error('Gemini returned an empty response.');
+    throw requestError(502, 'Gemini returned an empty response. Please try again.');
   }
 
   // 6. Parse the JSON response
@@ -153,7 +219,7 @@ Instructions:
   try {
     parsedJson = JSON.parse(responseText);
   } catch {
-    throw new Error('Gemini returned invalid JSON.');
+    throw requestError(502, 'Gemini returned an invalid plan. Please try again.');
   }
 
   // 7. Validate the data on the server
@@ -162,9 +228,7 @@ Instructions:
   if (!result.success) {
     console.error('Invalid Gemini response:', result.error.flatten());
 
-    throw new Error(
-      'Gemini returned a plan with invalid fields. Please try again.',
-    );
+    throw requestError(502, 'Gemini returned a plan with invalid fields. Please try again.');
   }
 
   // 8. Validate task dates
@@ -182,13 +246,11 @@ Instructions:
       date.toISOString().slice(0, 10) === task.dueDate;
 
     if (!validDate) {
-      throw new Error('Gemini returned an invalid task due date.');
+      throw requestError(502, 'Gemini returned an invalid task due date. Please try again.');
     }
 
     if (targetDate && task.dueDate > targetDate) {
-      throw new Error(
-        'Gemini returned a task after the target date.',
-      );
+      throw requestError(502, 'Gemini returned a task after the target date. Please try again.');
     }
   }
 

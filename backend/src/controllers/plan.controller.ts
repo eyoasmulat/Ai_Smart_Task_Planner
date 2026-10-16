@@ -2,8 +2,10 @@
 import type { Request, Response, NextFunction } from 'express';
 import {
   createPlan,
+  deletePlan,
   getAllPlans,
   getPlanById,
+  updatePlan,
 } from '../services/plane.services.js';
 
 export async function createPlanController(
@@ -122,6 +124,78 @@ export async function getPlanByIdController(
       success: true,
       data: plan,
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updatePlanController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input: unknown = req.body;
+    if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+      res.status(400).json({ success: false, message: 'Request body must be a JSON object.' });
+      return;
+    }
+
+    const values = input as Record<string, unknown>;
+    const allowedFields = ['title', 'goalDescription', 'targetDate'];
+    const unknownFields = Object.keys(values).filter((key) => !allowedFields.includes(key));
+    if (unknownFields.length) {
+      res.status(400).json({ success: false, message: `Unknown field(s): ${unknownFields.join(', ')}` });
+      return;
+    }
+    if (!Object.keys(values).length) {
+      res.status(400).json({ success: false, message: 'Provide at least one field to update.' });
+      return;
+    }
+    if (values.title !== undefined && (typeof values.title !== 'string' || !values.title.trim())) {
+      res.status(400).json({ success: false, message: 'title must be a non-empty string.' });
+      return;
+    }
+    if (values.goalDescription !== undefined && (typeof values.goalDescription !== 'string' || !values.goalDescription.trim())) {
+      res.status(400).json({ success: false, message: 'goalDescription must be a non-empty string.' });
+      return;
+    }
+    if (values.targetDate !== undefined && values.targetDate !== null &&
+      (typeof values.targetDate !== 'string' || Number.isNaN(Date.parse(values.targetDate)))) {
+      res.status(400).json({ success: false, message: 'targetDate must be a valid date or null.' });
+      return;
+    }
+
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const plan = await updatePlan(id, {
+      ...(values.title !== undefined && { title: (values.title as string).trim() }),
+      ...(values.goalDescription !== undefined && { goalDescription: (values.goalDescription as string).trim() }),
+      ...(values.targetDate !== undefined && { targetDate: values.targetDate as string | null }),
+    });
+
+    if (!plan) {
+      res.status(404).json({ success: false, message: 'Plan not found.' });
+      return;
+    }
+    res.status(200).json({ success: true, message: 'Plan updated successfully.', data: plan });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deletePlanController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const deleted = await deletePlan(id);
+    if (!deleted) {
+      res.status(404).json({ success: false, message: 'Plan not found.' });
+      return;
+    }
+    res.status(200).json({ success: true, message: 'Plan and its tasks deleted successfully.' });
   } catch (error) {
     next(error);
   }
