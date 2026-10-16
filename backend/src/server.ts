@@ -7,6 +7,7 @@ import healthRoutes from './routes/health.routes.js';
 import planRoutes from './routes/plan.routes.js';
 import taskRoutes from './routes/task.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
+import geminiRoutes from './routes/gemini.routes.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -16,8 +17,8 @@ app.use(
     origin: 'http://localhost:5173',
   }),
 );
-
 app.use(express.json());
+app.use('/api/gemini', geminiRoutes);
 
 app.get('/', (_req, res) => {
   res.json({
