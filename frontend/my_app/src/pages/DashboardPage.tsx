@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { generatePlan, getPlans, savePlan, type Plan, type PlanTask } from "../services/api";
 
-interface DashboardReferencePageProps {
+interface DashboardPageProps {
   searchTerm: string;
 }
 
@@ -36,7 +36,7 @@ function formatDueDate(value: string) {
   };
 }
 
-export default function DashboardReferencePage({ searchTerm }: DashboardReferencePageProps) {
+export default function DashboardPage({ searchTerm }: DashboardPageProps) {
   const [searchParams] = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [goal, setGoal] = useState("");

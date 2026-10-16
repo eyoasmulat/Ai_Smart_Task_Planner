@@ -16,7 +16,7 @@ import {
 
 type CollectionKind = "plans" | "tasks" | "calendar" | "settings";
 
-interface CollectionPageProps {
+interface WorkspacePageProps {
   kind: CollectionKind;
   searchTerm: string;
 }
@@ -28,7 +28,7 @@ const labels: Record<CollectionKind, [string, string]> = {
   settings: ["Settings", "Application configuration."],
 };
 
-export default function CollectionPage({ kind, searchTerm }: CollectionPageProps) {
+export default function WorkspacePage({ kind, searchTerm }: WorkspacePageProps) {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [error, setError] = useState("");
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);

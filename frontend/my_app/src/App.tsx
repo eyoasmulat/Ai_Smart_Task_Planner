@@ -7,10 +7,10 @@ import {
   Routes,
   useNavigate,
 } from "react-router-dom";
-import ReferenceShell from "./components/ReferenceShell";
-import CollectionPage from "./pages/CollectionPage";
-import DashboardReferencePage from "./pages/DashboardReferencePage";
+import AppLayout from "./components/AppLayout";
+import DashboardPage from "./pages/DashboardPage";
 import HomePage from "./pages/HomePage";
+import WorkspacePage from "./pages/WorkspacePage";
 import "./index.css";
 
 function PlannerApp() {
@@ -27,15 +27,15 @@ function PlannerApp() {
           />
         }
       />
-      <Route element={<ReferenceShell searchTerm={searchTerm} onSearchChange={setSearchTerm} />}>
+      <Route element={<AppLayout searchTerm={searchTerm} onSearchChange={setSearchTerm} />}>
         <Route
           path="dashboard"
-          element={<DashboardReferencePage searchTerm={searchTerm} />}
+          element={<DashboardPage searchTerm={searchTerm} />}
         />
-        <Route path="plans" element={<CollectionPage kind="plans" searchTerm={searchTerm} />} />
-        <Route path="tasks" element={<CollectionPage kind="tasks" searchTerm={searchTerm} />} />
-        <Route path="calendar" element={<CollectionPage kind="calendar" searchTerm={searchTerm} />} />
-        <Route path="settings" element={<CollectionPage kind="settings" searchTerm={searchTerm} />} />
+        <Route path="plans" element={<WorkspacePage kind="plans" searchTerm={searchTerm} />} />
+        <Route path="tasks" element={<WorkspacePage kind="tasks" searchTerm={searchTerm} />} />
+        <Route path="calendar" element={<WorkspacePage kind="calendar" searchTerm={searchTerm} />} />
+        <Route path="settings" element={<WorkspacePage kind="settings" searchTerm={searchTerm} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

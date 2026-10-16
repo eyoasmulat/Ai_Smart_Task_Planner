@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import "../dashboard.css";
 
-interface ReferenceShellProps {
+interface AppLayoutProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
 }
@@ -24,10 +24,10 @@ const navigation = [
   { label: "Settings", to: "/settings", icon: Settings },
 ];
 
-export default function ReferenceShell({
+export default function AppLayout({
   searchTerm,
   onSearchChange,
-}: ReferenceShellProps) {
+}: AppLayoutProps) {
   return (
     <>
       <header className="top">
