@@ -1,31 +1,36 @@
+
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 
-dotenv.config();
+import healthRoutes from './routes/health.routes.js';
+import planRoutes from './routes/plan.routes.js';
+import taskRoutes from './routes/task.routes.js';
+import { errorHandler } from './middleware/error.middleware.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 
-app.use(cors({
-  origin: 'http://localhost:5173',
-}));
+app.use(
+  cors({
+    origin: 'http://localhost:5173',
+  }),
+);
 
 app.use(express.json());
 
 app.get('/', (_req, res) => {
   res.json({
-    message: 'AI Smart Task Planner API is running!',
+    message: 'Welcome to AI Smart Task Planner API',
   });
 });
 
-app.get('/api/health', (_req, res) => {
-  res.json({
-    status: 'OK',
-    message: 'Backend is working correctly',
-  });
-});
+app.use('/api/health', healthRoutes);
+app.use('/api/plans', planRoutes);
+app.use('/api/tasks', taskRoutes);
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`Backend running at http://localhost:${PORT}`);
+  console.log(`server is running at http://localhost:${PORT}`);
 });
