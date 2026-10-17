@@ -8,8 +8,10 @@ import {
   FolderKanban,
   ListTodo,
   MoveUpRight,
+  Menu,
   Sparkles,
   Target,
+  X,
 } from "lucide-react";
 import { getPlans, type Plan, type PlanTask } from "../services/api";
 import "../home.css";
@@ -39,6 +41,7 @@ function status(task: PlanTask) {
 
 export default function HomePage({ onCreatePlan }: HomePageProps) {
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     void getPlans().then(setPlans).catch(() => setPlans([]));
@@ -58,15 +61,25 @@ export default function HomePage({ onCreatePlan }: HomePageProps) {
             <span className="home-logo"><Sparkles size={23} /></span>
             AI Task Planner
           </a>
-          <nav className="home-links" aria-label="Home page navigation">
-            <a className="active" href="#home">Home</a>
-            <a href="#features">Features</a>
-            <a href="#how">How it works</a>
-            <a href="#about">About</a>
+          <nav id="home-navigation" className={`home-links${mobileMenuOpen ? " open" : ""}`} aria-label="Home page navigation">
+            <a className="active" href="#home" onClick={() => setMobileMenuOpen(false)}>Home</a>
+            <a href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
+            <a href="#how" onClick={() => setMobileMenuOpen(false)}>How it works</a>
+            <a href="#about" onClick={() => setMobileMenuOpen(false)}>About</a>
           </nav>
           <div className="home-nav-actions">
             <a className="home-btn" href="#features">Explore</a>
             <button className="home-btn primary" type="button" onClick={onCreatePlan}>Create a Plan <ArrowRight size={16} /></button>
+            <button
+              className="home-mobile-menu-toggle"
+              type="button"
+              aria-label={mobileMenuOpen ? "Close page navigation" : "Open page navigation"}
+              aria-controls="home-navigation"
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((open) => !open)}
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
         </div>
       </header>

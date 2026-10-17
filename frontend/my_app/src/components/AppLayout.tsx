@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import {
   CalendarDays,
@@ -5,9 +6,11 @@ import {
   FolderKanban,
   House,
   LayoutDashboard,
+  Menu,
   Search,
   Settings,
   Sparkles,
+  X,
 } from "lucide-react";
 import "../dashboard.css";
 
@@ -28,6 +31,8 @@ export default function AppLayout({
   searchTerm,
   onSearchChange,
 }: AppLayoutProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <>
       <header className="top">
@@ -49,10 +54,35 @@ export default function AppLayout({
         <Link className="home-return" to="/">
           <House size={16} /> Home
         </Link>
+        <button
+          className="menu-toggle"
+          type="button"
+          aria-label="Open navigation menu"
+          aria-controls="app-sidebar"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(true)}
+        >
+          <Menu size={22} />
+        </button>
       </header>
 
+      {menuOpen && (
+        <button
+          className="sidebar-backdrop"
+          type="button"
+          aria-label="Close navigation menu"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
       <div className="layout">
-        <aside className="sidebar">
+        <aside id="app-sidebar" className={`sidebar${menuOpen ? " open" : ""}`}>
+          <div className="sidebar-mobile-head">
+            <strong>Navigation</strong>
+            <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close navigation menu">
+              <X size={20} />
+            </button>
+          </div>
           <nav className="nav" aria-label="Main navigation">
             {navigation.map(({ label, to, icon: Icon, ...properties }) => (
               <NavLink
@@ -60,6 +90,7 @@ export default function AppLayout({
                 to={to}
                 end={"end" in properties ? properties.end : false}
                 className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+                onClick={() => setMenuOpen(false)}
               >
                 <Icon size={18} strokeWidth={1.8} />
                 {label}
@@ -71,7 +102,7 @@ export default function AppLayout({
             <Sparkles className="promo-mark" size={23} />
             <h3>Let AI plan your goals</h3>
             <p>Turn your ideas into actionable tasks and achieve more, faster.</p>
-            <Link className="primary" to="/dashboard?create=1">
+            <Link className="primary" to="/dashboard?create=1" onClick={() => setMenuOpen(false)}>
               <span aria-hidden="true">+</span> Create New Plan
             </Link>
           </section>

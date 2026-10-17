@@ -2,7 +2,7 @@
   --ink: #102454;
   --muted: #000;
   --icon-muted: #61769e;
-  --purple: #513cff;
+  --purple: hwb(207 3% 37%);
   --line: #e3eafa;
   --green: #10b981;
   --blue: #2684ff;
@@ -58,6 +58,12 @@ button {
 
 .brand-mark {
   color: var(--purple);
+}
+
+.menu-toggle,
+.sidebar-mobile-head,
+.sidebar-backdrop {
+  display: none;
 }
 
 .search-wrap {
@@ -185,7 +191,7 @@ button {
   gap: 8px;
   border: 0;
   border-radius: 9px;
-  background: linear-gradient(100deg, #4d35f4, #6245ff);
+  background: linear-gradient(100deg, hwb(207 3% 37%), hwb(207 3% 37%));
   padding: 13px 17px;
   color: #fff;
   font-weight: 700;
@@ -1074,8 +1080,27 @@ button {
     font-size: 17px;
   }
 
-  .search-wrap {
+  .home-return {
+    order: 2;
+    padding: 8px 9px;
+    font-size: 12px;
+  }
+
+  .menu-toggle {
     order: 3;
+    display: grid;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+  }
+
+  .search-wrap {
+    order: 4;
     width: 100%;
   }
 
@@ -1084,7 +1109,55 @@ button {
   }
 
   .sidebar {
-    display: none;
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 60;
+    display: flex;
+    width: min(320px, 86vw);
+    overflow-y: auto;
+    transform: translateX(-105%);
+    border-right: 0;
+    box-shadow: 12px 0 34px #10245424;
+    padding: 24px 14px;
+    transition: transform 180ms ease-out;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-mobile-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+    padding: 0 8px 16px;
+  }
+
+  .sidebar-mobile-head button {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    display: block;
+    border: 0;
+    background: #10245466;
+  }
+
+  .nav-link {
+    min-height: 54px;
+    font-size: 16px;
   }
 
   .app-main {
@@ -1258,4 +1331,12 @@ button {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+@media (max-width: 700px) {
+  .home-return {
+    order: 2;
+    padding: 8px 9px;
+    font-size: 12px;
+  }
 }
