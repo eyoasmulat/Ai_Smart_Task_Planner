@@ -12,10 +12,11 @@ import calendarRoutes from './routes/calendar.routes.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 app.use(
   cors({
-    origin: 'http://localhost:5173',
+    origin: FRONTEND_URL,
   }),
 );
 app.use(express.json());

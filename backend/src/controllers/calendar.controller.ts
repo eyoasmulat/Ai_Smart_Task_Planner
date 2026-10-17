@@ -48,10 +48,11 @@ export async function googleCalendarCallback(
       tokens as Record<string, unknown>,
     );
 
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     res.send(`
       <h2>Google Calendar connected successfully!</h2>
       <p>You can close this page and return to AI Smart Task Planner.</p>
-      <a href="http://localhost:5173">Return to your app</a>
+      <a href="${frontendUrl}">Return to your app</a>
     `);
   } catch (error) {
     console.error('Google Calendar authorization failed:', error);

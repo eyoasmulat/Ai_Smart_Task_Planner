@@ -5,7 +5,9 @@ import { google } from 'googleapis';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-const tokenEnvPath = path.resolve(process.cwd(), '.env.google-calendar');
+const tokenEnvPath = path.resolve(
+  process.env.GOOGLE_TOKEN_FILE ?? path.join(process.cwd(), '.env.google-calendar'),
+);
 
 function asTokenString(value: unknown): string | undefined {
   if (typeof value === 'string' || typeof value === 'number') {
