@@ -3,7 +3,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 
-import healthRoutes from './routes/health.routes.js';
+
 import planRoutes from './routes/plan.routes.js';
 import taskRoutes from './routes/task.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
@@ -28,7 +28,7 @@ app.get('/', (_req, res) => {
   });
 });
 
-app.use('/api/health', healthRoutes);
+
 app.use('/api/plans', planRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/gemini', geminiRoutes);
