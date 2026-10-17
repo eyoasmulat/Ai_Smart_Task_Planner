@@ -4,6 +4,23 @@ import { google } from 'googleapis';
 import googleCalendarService = require('../services/google-calendar.service.js');
 import { prisma } from '../lib/prisma.js';
 import { parsePositiveIntegerId } from '../lib/task-id.js';
+
+function getGoogleApiErrorMessage(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null) return undefined;
+
+  const response = Reflect.get(error, 'response');
+  if (typeof response !== 'object' || response === null) return undefined;
+
+  const data = Reflect.get(response, 'data');
+  if (typeof data !== 'object' || data === null) return undefined;
+
+  const googleError = Reflect.get(data, 'error');
+  if (typeof googleError !== 'object' || googleError === null) return undefined;
+
+  const message = Reflect.get(googleError, 'message');
+  return typeof message === 'string' ? message : undefined;
+}
+
 export function connectGoogleCalendar(
   _req: Request,
   res: Response,
@@ -158,7 +175,7 @@ export async function addTaskToGoogleCalendar(
 
     res.status(500).json({
       success: false,
-      message: 'Could not add task to Google Calendar.',
+      message: getGoogleApiErrorMessage(error) ?? 'Could not add task to Google Calendar.',
     });
   }
 }

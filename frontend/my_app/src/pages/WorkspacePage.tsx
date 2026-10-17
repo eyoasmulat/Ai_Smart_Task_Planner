@@ -13,6 +13,7 @@ import {
   type Plan,
   type PlanTask,
 } from "../services/api";
+import Toast from "../components/Toast";
 
 type CollectionKind = "plans" | "tasks" | "calendar" | "settings";
 
@@ -20,6 +21,10 @@ interface WorkspacePageProps {
   kind: CollectionKind;
   searchTerm: string;
 }
+
+type PendingDelete =
+  | { kind: "plan"; plan: Plan }
+  | { kind: "task"; task: PlanTask & { planTitle: string; planId?: number } };
 
 const labels: Record<CollectionKind, [string, string]> = {
   plans: ["My Plans", "All plans saved in PostgreSQL."],
@@ -47,7 +52,9 @@ export default function WorkspacePage({ kind, searchTerm }: WorkspacePageProps) 
   const [selectedCalendarTaskIds, setSelectedCalendarTaskIds] = useState<number[]>([]);
   const [calendarReviewTasks, setCalendarReviewTasks] = useState<(PlanTask & { planTitle: string; planId?: number })[] | null>(null);
   const [calendarWorking, setCalendarWorking] = useState(false);
-  const [calendarMessage, setCalendarMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -96,8 +103,9 @@ export default function WorkspacePage({ kind, searchTerm }: WorkspacePageProps) 
 
     setCalendarWorking(true);
     setError("");
-    setCalendarMessage("");
+    setSuccessMessage("");
     const failedTasks: typeof calendarReviewTasks = [];
+    const failureReasons: string[] = [];
     let createdCount = 0;
 
     for (const task of calendarReviewTasks) {
@@ -112,22 +120,21 @@ export default function WorkspacePage({ kind, searchTerm }: WorkspacePageProps) 
             : planTask),
         })));
         createdCount += 1;
-      } catch {
+      } catch (requestError: unknown) {
         failedTasks.push(task);
+        if (requestError instanceof Error) failureReasons.push(requestError.message);
       }
-    }
-
-    if (createdCount > 0) {
-      setCalendarMessage(`${createdCount} calendar event${createdCount === 1 ? "" : "s"} created.`);
     }
 
     if (failedTasks.length > 0) {
       setCalendarReviewTasks(failedTasks);
       setSelectedCalendarTaskIds(failedTasks.flatMap((task) => task.id === undefined ? [] : [task.id]));
-      setError(`${failedTasks.length} event${failedTasks.length === 1 ? "" : "s"} could not be created. You can retry the remaining tasks.`);
+      const failureDetail = failureReasons[0] ? ` Details: ${failureReasons[0]}` : "";
+      setError(`${createdCount ? `${createdCount} event${createdCount === 1 ? "" : "s"} created. ` : ""}${failedTasks.length} event${failedTasks.length === 1 ? "" : "s"} could not be created. You can retry the remaining tasks.${failureDetail}`);
     } else {
       setCalendarReviewTasks(null);
       setSelectedCalendarTaskIds([]);
+      setSuccessMessage(`${createdCount} calendar event${createdCount === 1 ? "" : "s"} created.`);
     }
 
     setCalendarWorking(false);
@@ -156,6 +163,7 @@ export default function WorkspacePage({ kind, searchTerm }: WorkspacePageProps) 
       });
       setPlans((current) => current.map((plan) => plan.id === updated.id ? updated : plan));
       setEditingPlan(null);
+      setSuccessMessage("Plan updated.");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not update plan.");
     } finally {
@@ -164,11 +172,13 @@ export default function WorkspacePage({ kind, searchTerm }: WorkspacePageProps) 
   }
 
   async function handlePlanDelete(plan: Plan) {
-    if (!plan.id || !window.confirm(`Delete "${plan.title}" and all its tasks?`)) return;
+    if (!plan.id) return;
     setError("");
     try {
       await deletePlan(plan.id);
       setPlans((current) => current.filter((item) => item.id !== plan.id));
+      setPendingDelete(null);
+      setSuccessMessage(`Plan "${plan.title}" deleted.`);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not delete plan.");
     }
@@ -206,6 +216,7 @@ export default function WorkspacePage({ kind, searchTerm }: WorkspacePageProps) 
         tasks: plan.tasks.map((task) => task.id === updated.id ? updated : task),
       })));
       setEditingTask(null);
+      setSuccessMessage("Task updated.");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not update task.");
     } finally {
@@ -214,7 +225,7 @@ export default function WorkspacePage({ kind, searchTerm }: WorkspacePageProps) 
   }
 
   async function handleTaskDelete(task: PlanTask & { planTitle: string }) {
-    if (!task.id || !window.confirm(`Delete task "${task.title}"?`)) return;
+    if (!task.id) return;
     setError("");
     try {
       await deleteTask(task.id);
@@ -222,8 +233,24 @@ export default function WorkspacePage({ kind, searchTerm }: WorkspacePageProps) 
         ...plan,
         tasks: plan.tasks.filter((item) => item.id !== task.id),
       })));
+      setPendingDelete(null);
+      setSuccessMessage(`Task "${task.title}" deleted.`);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not delete task.");
+    }
+  }
+
+  async function confirmPendingDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      if (pendingDelete.kind === "plan") {
+        await handlePlanDelete(pendingDelete.plan);
+      } else {
+        await handleTaskDelete(pendingDelete.task);
+      }
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -239,7 +266,8 @@ export default function WorkspacePage({ kind, searchTerm }: WorkspacePageProps) 
         )}
       </div>
 
-      {error && <div role="alert" className="empty">{error}</div>}
+      <Toast message={error} type="error" />
+      <Toast message={successMessage} type="success" />
       {kind === "settings" ? (
         <section className="panel">
           <p className="muted">This starter screen is ready for settings and Google Calendar connection later.</p>
@@ -256,7 +284,7 @@ export default function WorkspacePage({ kind, searchTerm }: WorkspacePageProps) 
                   <div className="collection-actions">
                     <Link className="secondary collection-action" to={`/tasks?planId=${plan.id ?? ""}`}>View tasks</Link>
                     <button className="secondary collection-action" type="button" onClick={() => startPlanEdit(plan)} aria-label={`Edit ${plan.title}`}><Edit3 size={15} /> Edit</button>
-                    <button className="secondary collection-action danger-action" type="button" onClick={() => void handlePlanDelete(plan)} aria-label={`Delete ${plan.title}`}><Trash2 size={15} /> Delete</button>
+                    <button className="secondary collection-action danger-action" type="button" onClick={() => setPendingDelete({ kind: "plan", plan })} aria-label={`Delete ${plan.title}`}><Trash2 size={15} /> Delete</button>
                   </div>
                 </article>
               ))}
@@ -274,7 +302,7 @@ export default function WorkspacePage({ kind, searchTerm }: WorkspacePageProps) 
                   key={task.id ?? `${task.title}-${index}`}
                   task={task}
                   onEdit={() => startTaskEdit(task)}
-                  onDelete={() => void handleTaskDelete(task)}
+                  onDelete={() => setPendingDelete({ kind: "task", task })}
                 />
               ))}
             </div>
@@ -299,7 +327,6 @@ export default function WorkspacePage({ kind, searchTerm }: WorkspacePageProps) 
               </a>
             )}
           </div>
-          {calendarMessage && <p className="calendar-success" role="status">{calendarMessage}</p>}
           <p className="muted calendar-note">Select tasks with due dates, review the all-day event details, then confirm to add them to your primary Google Calendar.</p>
           <div className="calendar-selection">
             <strong>Tasks with due dates</strong>
@@ -346,6 +373,28 @@ export default function WorkspacePage({ kind, searchTerm }: WorkspacePageProps) 
             <div className="empty">No tasks with due dates yet. Add due dates to tasks to schedule them.</div>
           )}
         </section>
+      )}
+
+      {pendingDelete && (
+        <div className="modalbg" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deleting) setPendingDelete(null); }}>
+          <section className="modal delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
+            <div className="modalhead">
+              <h2 id="delete-confirm-title">Delete {pendingDelete.kind}?</h2>
+              <button type="button" onClick={() => setPendingDelete(null)} disabled={deleting} aria-label="Close confirmation"><X size={18} /></button>
+            </div>
+            <p className="muted">
+              {pendingDelete.kind === "plan"
+                ? `Delete "${pendingDelete.plan.title}" and all its tasks? This cannot be undone.`
+                : `Delete task "${pendingDelete.task.title}"? This cannot be undone.`}
+            </p>
+            <div className="actions">
+              <button className="secondary" type="button" onClick={() => setPendingDelete(null)} disabled={deleting}>Cancel</button>
+              <button className="danger-button" type="button" onClick={() => void confirmPendingDelete()} disabled={deleting}>
+                <Trash2 size={15} /> {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
 
       {calendarReviewTasks && (

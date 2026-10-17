@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { generatePlan, getPlans, savePlan, type Plan, type PlanTask } from "../services/api";
+import Toast from "../components/Toast";
 
 interface DashboardPageProps {
   searchTerm: string;
@@ -192,11 +193,7 @@ export default function DashboardPage({ searchTerm }: DashboardPageProps) {
           </article>
         </div>
 
-        {message && (
-          <p role={messageType === "error" ? "alert" : "status"} className={`message show ${messageType}`}>
-            {message}
-          </p>
-        )}
+        <Toast message={message} type={messageType} />
 
         <div className="dashboard-grid">
           <div className="dashboard-col">

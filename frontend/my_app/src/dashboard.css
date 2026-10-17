@@ -686,6 +686,64 @@ button {
   color: #047857;
 }
 
+.toast {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 100;
+  display: flex;
+  width: min(420px, calc(100vw - 36px));
+  align-items: center;
+  gap: 11px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 13px 14px;
+  box-shadow: 0 8px 26px #10245424;
+  animation: toast-enter 180ms ease-out;
+}
+
+.toast span {
+  flex: 1;
+  line-height: 1.45;
+}
+
+.toast button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: currentColor;
+}
+
+.toast button:hover {
+  background: #0000000d;
+}
+
+.toast.success {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.toast.error {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.toast.error + .toast.success {
+  top: 84px;
+}
+
+@keyframes toast-enter {
+  from { opacity: 0; transform: translateY(-7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .calendar-review-item {
   display: grid;
   gap: 5px;
@@ -874,6 +932,41 @@ button {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 18px;
+}
+
+.delete-confirm-modal {
+  width: min(440px, 100%);
+}
+
+.delete-confirm-modal .modalhead h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.delete-confirm-modal > p {
+  margin: 16px 0 0;
+}
+
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #be123c;
+  border-radius: 8px;
+  background: #be123c;
+  padding: 9px 13px;
+  color: #fff;
+  font-weight: 700;
+}
+
+.danger-button:hover {
+  background: #9f1239;
+}
+
+.danger-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .home-page .home-hero {
